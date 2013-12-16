@@ -3,6 +3,21 @@ optical-drive-panic
 
 Fancy and thrilling game to save your system from panic
 
+* Story
+
+Hi, I'm a evil alien. Nice to meet you.
+How are you doing?
+
+BTW, all your optical drivers are belong to us.
+We'll try to eject them randomely from now on.
+You should close them in five seconds.
+If you fail, we get this system panic. If you can
+survive 300 seconds, we promise to leave here.
+
+  NOTE:
+  If you don't know what system panic is, never
+  play this game.
+
 * USGAE
 
 1. go to the top directory
