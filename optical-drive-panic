@@ -1,0 +1,124 @@
+#!/bin/bash -x
+
+SCOREFILE=./scorefile
+echo 0 >$SCOREFILE
+export MAX_INTERVAL=30
+export TIME=40
+export PANIC_DELAY=5
+
+function kill_all {
+    for i in ${PIDS} ; do
+	kill -KILL $i
+    done
+}
+
+function close_all {
+    for i in ${LIST} ; do
+	eject -t $i
+    done
+}
+
+function cleanup {
+    kill_all
+    close_all
+}
+
+function worker {
+    local dev="$1"
+
+    while : ; do
+	sleep $((RANDOM % MAX_INTERVAL + 1))
+	eject "${dev}"
+	sleep ${PANIC_DELAY}
+	if ./opened ${dev} ; then
+	    # Your system get panic here.
+	    echo c >/proc/sysrtq-trigger
+
+	    # shouldn't reach here
+	    exit 1
+	fi
+	# FIXME: It has race here. SCORE can be changed
+	# simultaneously from multiple workers.
+	SCORE=$(cat $SCOREFILE)
+	echo $((SCORE + 100 * NDEVICES)) >$SCOREFILE
+    done
+}	     
+
+function validate_setting {
+    export LIST="$@"
+
+    if [ ! -f /proc/sysrq-trigger ] ; then
+	echo >&2 <<EOF
+This program needs /proc/sysrq-trigger file to
+panic the entire system. Please use a kernel having
+this file.
+EOF
+	exit 1
+    fi
+
+    for i in "$LIST" ; do
+	if [ ! -b ${i} ] ; then
+	    echo "${i} is not a cdrom device" >&2
+	    exit 1
+	fi
+    done
+
+    NDEVICES=0
+    if [ -z "${LIST}" ] ; then
+	LIST=/dev/cdrom
+    fi
+
+    for i in "${LIST}" ; do
+	NDEVICES=$((NDEVICES + 1))
+    done
+}
+
+function display_title {
+    cat <<EOF
+//////////////////////////////////////////////////////
+              Optical Drive Panic
+
+  Hi, I'm a evil alien. Nice to meet you.
+  How are you doing?
+
+  BTW, All your optical drivers are belong to us.
+  We'll try to eject them randomely from now on.
+  You should close them in ${PANIC_DELAY} seconds.
+  If you fail, we get this system panic. If you can
+  survive ${TIME} seconds, we promise to leave here.
+
+      --- press ENTER to start this game ---
+
+/////////////////////////////////////////////////////
+EOF
+    read
+}
+
+validate_setting $@
+close_all
+display_title
+
+PIDS=""
+
+trap cleanup 2
+
+for i in "$LIST" ; do
+    worker $i &
+    PIDS="${PIDS} $!"
+done
+
+sleep $TIME
+
+cleanup
+
+cat <<EOF
+//////////////////////////////////////////////
+
+   Congraturations! Your system survived.
+   Good bye, see you again.
+
+         --- score: $(cat $SCOREFILE) ---
+////////////////////////////////////////////
+EOF
+
+exit 0
