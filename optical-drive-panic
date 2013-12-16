@@ -3,7 +3,7 @@
 SCOREFILE=./scorefile
 echo 0 >$SCOREFILE
 export MAX_INTERVAL=30
-export TIME=40
+export TIME=300
 export PANIC_DELAY=5
 
 function kill_all {
